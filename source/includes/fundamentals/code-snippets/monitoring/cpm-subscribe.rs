@@ -1,30 +1,22 @@
-use std::{ env, sync::Arc };
-
-use bson::Document;
 use mongodb::{
     Client,
-    Collection,
-    event::cmap::{ CmapEventHandler, ConnectionCreatedEvent },
+    event::EventHandler,
+    event::cmap::CmapEvent,
     options::ClientOptions,
 };
 
 fn main() -> mongodb::error::Result<()> {
     let uri = "<connection string>";
 
-    let mut client_options = ClientOptions::parse_async(uri).await?;
-
     // begin-cmap
-    struct ConnectionCreatedHandler;
-
-    impl CmapEventHandler for ConnectionCreatedHandler {
-        fn handle_connection_created_event(&self, event: ConnectionCreatedEvent) {
-            eprintln!("Connection created: {:?}", event);
+    let mut client_options = ClientOptions::parse(uri).await?;
+    client_options.cmap_event_handler = Some(EventHandler::callback(|ev| match ev {
+        CmapEvent::ConnectionCreated(_) => {
+            println!("{:?}", ev)
         }
-    }
-
-    let handler: Arc<dyn CmapEventHandler> = Arc::new(ConnectionCreatedHandler);
-    client_options.cmap_event_handler = Some(handler);
-
+        _ => (),
+    }));
+    
     let client = Client::with_options(client_options)?;
 
     // ... perform actions with the client to generate events

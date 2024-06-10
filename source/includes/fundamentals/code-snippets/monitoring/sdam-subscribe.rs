@@ -12,7 +12,12 @@ async fn main() -> mongodb::error::Result<()> {
     
     // begin-sdam
     let mut client_options = ClientOptions::parse(uri).await?;
-    client_options.sdam_event_handler = Some(EventHandler::callback(|ev| println!("{:?}", ev)));
+    client_options.sdam_event_handler = Some(EventHandler::callback(|ev| match ev {
+        SdamEvent::ServerOpening(_) => {
+            println!("{:?}", ev)
+        }
+        _ => (),
+    }));
     
     let client = Client::with_options(client_options)?;
 
